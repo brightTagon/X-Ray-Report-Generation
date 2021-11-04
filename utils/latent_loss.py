@@ -21,4 +21,4 @@ class MSEGCRLatentLoss:
         loss_BR = mean_equal_by_instance(loss_BR, len_B)
 
         loss = self.w_loss_rb * loss_RB + self.w_loss_br * loss_BR
-        return loss
+        return R_pi, R_i, loss

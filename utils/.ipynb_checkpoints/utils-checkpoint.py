@@ -65,19 +65,32 @@ def split_sentences(sentences):
 #         list_sentence.pop()
     return list(map(strip_sentence, clean_sentences))
 
+# def clean_report(report):
+#     report_cleaner = lambda t: t.replace('..', '.').replace('..', '.').replace('..', '.').replace('1. ', '') \
+#         .replace('. 2. ', '. ').replace('. 3. ', '. ').replace('. 4. ', '. ').replace('. 5. ', '. ') \
+#         .replace(' 2. ', '. ').replace(' 3. ', '. ').replace(' 4. ', '. ').replace(' 5. ', '. ') \
+#         .strip().lower().split('. ')
+#     sent_cleaner = lambda t: re.sub(
+#         '[.,?;*!%^&_+():-\[\]{}]', '',
+#         t.replace('"', '').replace('/', '').replace('\\', '').replace(
+#             "'", '').strip().lower())
+#     tokens = [
+#         sent_cleaner(sent) for sent in report_cleaner(report)
+#         if sent_cleaner(sent) != []
+#     ]
+#     report = ' . '.join(tokens) + ' . '
+#     return report, tokens
+
 def clean_report(report):
     report_cleaner = lambda t: t.replace('..', '.').replace('..', '.').replace('..', '.').replace('1. ', '') \
         .replace('. 2. ', '. ').replace('. 3. ', '. ').replace('. 4. ', '. ').replace('. 5. ', '. ') \
         .replace(' 2. ', '. ').replace(' 3. ', '. ').replace(' 4. ', '. ').replace(' 5. ', '. ') \
         .strip().lower().split('. ')
-    sent_cleaner = lambda t: re.sub(
-        '[.,?;*!%^&_+():-\[\]{}]', '',
-        t.replace('"', '').replace('/', '').replace('\\', '').replace(
-            "'", '').strip().lower())
-    tokens = [
-        sent_cleaner(sent) for sent in report_cleaner(report)
-        if sent_cleaner(sent) != []
-    ]
-    report = ' . '.join(tokens) + ' . '
+    sent_cleaner = lambda t: re.sub('[.,?;*!%^&_+():-\[\]{}]', '', t.replace('"', '').replace('/', '').
+                                    replace('\\', '').replace("'", '').strip().lower())
+    tokens = [sent_cleaner(sent) for sent in report_cleaner(report) if sent_cleaner(sent) != []]
+    report = ' . '.join(tokens) + ' .'
     return report, tokens
-    
+
+def tokenize_report(report):
+    return clean_report(cut_startseq_endseq(report).strip().lower())

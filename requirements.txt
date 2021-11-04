@@ -1,0 +1,11 @@
+torch
+numpy
+pandas
+opencv-python
+nltk
+Pillow
+matplotlib
+sentence-transformers
+tensorboard==2.2
+scipy
+torch-summary

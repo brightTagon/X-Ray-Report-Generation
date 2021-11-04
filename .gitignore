@@ -1,2 +1,5 @@
 /data
 /backup
+/env
+/runs
+/model/weights

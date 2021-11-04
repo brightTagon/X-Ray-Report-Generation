@@ -6,6 +6,20 @@ from scipy.optimize import linear_sum_assignment
 from torch import Tensor, nn
 import torch.nn.functional as F
 
+def format_pytorch_version(version):
+    return version.split('+')[0]
+
+TORCH_version = torch.__version__
+TORCH = format_pytorch_version(TORCH_version)
+
+def format_cuda_version(version):
+    return 'cu' + version.replace('.', '')
+
+CUDA_version = torch.version.cuda
+CUDA = format_cuda_version(CUDA_version)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 def chunk_pad_by_lengths(x, lengths, batch_first = True):
     """
     Zero padding
@@ -15,7 +29,7 @@ def chunk_pad_by_lengths(x, lengths, batch_first = True):
         (t, n, d) if not batch_first
         (n, t, d) if batch_first
     """
-    x = x.split(lengths.tolist(), 0)
+    x = x.split(lengths.tolist(), 0) # x = x.split(lengths.tolist(), 0)
     x = nn.utils.rnn.pad_sequence(x, batch_first=batch_first)
     return x
 
@@ -28,7 +42,20 @@ def flat_by_lengths(x, lengths):
     """
     mask = ~make_pad_mask(lengths) ## shape: (n, t)
     x = x.flatten(0, 1) ## shape: (n*t, d)
-    mask = pad_mask.flatten() ## shape: (n*t)
+    mask = mask.flatten() ## shape: (n*t)
+    out = x[mask].contiguous()
+    return out
+
+def flat_by_lengths_max_t(x, lengths, max_t):
+    """
+    Args:
+        x: (n, t, d)
+    Returns:
+        out: (n*t, d) ## same tensor with x
+    """
+    mask = ~make_pad_mask_max_t(lengths, max_t) ## shape: (n, t)
+    x = x.flatten(0, 1) ## shape: (n*t, d)
+    mask = mask.flatten() ## shape: (n*t)
     out = x[mask].contiguous()
     return out
 
@@ -57,7 +84,19 @@ def make_pad_mask(lengths):
     """
     bs = lengths.shape[0]
     max_t = lengths.max()
-    pad_mask = torch.arange(0, max_t).expand(bs, -1)
+    pad_mask = torch.arange(0, max_t).expand(bs, -1).to(device) ### cuda
+    pad_mask = pad_mask >= lengths.reshape((-1, 1))
+    return pad_mask
+
+def make_pad_mask_max_t(lengths, max_t):
+    """
+    Args:
+        lengths: (bs, 1) or (bs)
+    Returns:
+        mask: (bs, max_t)
+    """
+    bs = lengths.shape[0]
+    pad_mask = torch.arange(0, max_t).expand(bs, -1).to(device) ### cuda
     pad_mask = pad_mask >= lengths.reshape((-1, 1))
     return pad_mask
 
@@ -103,14 +142,14 @@ def batch_hungarian_gcr(safe_coef:float = 0):
             gt_offset = 0
             cols = []
             for i, (dist, n_gt, n_pred) in enumerate(zip(dists, len_GT, len_pred)):
-                cost = dist[:n_gt, :n_pred].numpy()
+                cost = dist[:n_gt, :n_pred].cpu().detach().numpy() ### cuda ()
                 
                 if np.any(np.isnan(cost)):
                     print('cost:', cost)
                     raise ValueError('cost matrix contains nan')
                 
                 row, col = linear_sum_assignment(cost)
-                col = torch.LongTensor(col)
+                col = torch.LongTensor(col).to(device) ### cuda
                 cols.append(pred_offset + col)
                 
                 pred_offset += n_pred
